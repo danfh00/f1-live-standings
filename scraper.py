@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+import unicodedata
 
 
 def scrape_f1_driver_data():
@@ -30,7 +31,7 @@ def scrape_f1_driver_data():
             columns = row.find_all('td')
             if len(columns) > 1:
                 position = columns[0].text.strip()
-                driver_name = columns[1].text.strip()
+                driver_name = columns[1].text.strip()[:-3]
                 nationality = columns[2].text.strip()
                 car = columns[3].text.strip()
                 points = columns[-1].text.strip()
@@ -48,6 +49,7 @@ def scrape_f1_driver_data():
 
 
 def get_current_session():
+    return 'race'
     """
     Scrapes the F1 live timing page to determine the session type using BeautifulSoup.
     Returns 'race', 'sprint', or 'other'.
@@ -113,10 +115,26 @@ def get_live_race_order():
         return []
 
 
+def mock_race_order():
+    return [
+        "Nico Hulkenberg",
+        "Lewis Hamilton",
+        "Charles Leclerc",
+        "Carlos Sainz",
+        "Sergio Perez",
+        "Lando Norris",
+        "Fernando Alonso",
+        "George Russell",
+        "Oscar Piastri",
+        "Pierre Gasly"
+    ]
+
+
 def apply_race_points(standings_data, session_type):
     """
     Applies race or sprint points to drivers based on their current race order.
     """
+
     race_points = {
         "race": [25, 18, 15, 12, 10, 8, 6, 4, 2, 1],  # Points for a race
         "sprint": [8, 7, 6, 5, 4, 3, 2, 1]  # Points for a sprint race
@@ -126,16 +144,25 @@ def apply_race_points(standings_data, session_type):
     points_to_apply = race_points.get(session_type, [])
 
     # Get the live race order by scraping the F1 live timing page
-    race_order = get_live_race_order()
+    # race_order = get_live_race_order()
+
+    race_order = mock_race_order()
 
     if not race_order:
         print("No live race data available.")
         return standings_data
 
     # Apply the points to drivers in the current standings based on their race order
+
     for i, driver_name in enumerate(race_order):
         for driver in standings_data:
-            if driver['Driver'] == driver_name:
+            # Normalize and strip spaces
+            cleaned_driver_name = unicodedata.normalize(
+                'NFKD', driver['Driver']).strip()
+            cleaned_race_driver_name = unicodedata.normalize(
+                'NFKD', driver_name).strip()
+
+            if cleaned_driver_name == cleaned_race_driver_name:
                 if i < len(points_to_apply):  # Ensure we're within the points range
                     driver['Points'] += points_to_apply[i]
 
