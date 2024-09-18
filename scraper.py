@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+import pandas as pd
 import unicodedata
 
 
@@ -132,7 +133,8 @@ def mock_race_order():
 
 def apply_race_points(standings_data, session_type):
     """
-    Applies race or sprint points to drivers based on their current race order.
+    Applies race or sprint points to drivers based on their current race order,
+    updates their positions, and sorts the drivers based on their total championship points.
     """
 
     race_points = {
@@ -143,17 +145,18 @@ def apply_race_points(standings_data, session_type):
     # Get the relevant points system based on session type
     points_to_apply = race_points.get(session_type, [])
 
-    # Get the live race order by scraping the F1 live timing page
-    # race_order = get_live_race_order()
-
+    # Simulated race order (replace with live scraping when ready)
     race_order = mock_race_order()
 
     if not race_order:
         print("No live race data available.")
         return standings_data
 
-    # Apply the points to drivers in the current standings based on their race order
+    # Store original positions before making changes
+    for i, driver in enumerate(standings_data):
+        driver['Original Position'] = i + 1  # Starting from 1
 
+    # Apply the points to drivers in the current standings based on their race order
     for i, driver_name in enumerate(race_order):
         for driver in standings_data:
             # Normalize and strip spaces
@@ -162,11 +165,39 @@ def apply_race_points(standings_data, session_type):
             cleaned_race_driver_name = unicodedata.normalize(
                 'NFKD', driver_name).strip()
 
+            # Initialize 'Points Predicted in Session' to 0 if not already set
+            if 'Points Predicted in Session' not in driver:
+                driver['Points Predicted in Session'] = 0
+
             if cleaned_driver_name == cleaned_race_driver_name:
                 if i < len(points_to_apply):  # Ensure we're within the points range
-                    driver['Points'] += points_to_apply[i]
+                    driver['Points Predicted in Session'] = points_to_apply[i]
+                else:
+                    driver['Points Predicted in Session'] = 0
 
-    return standings_data
+    # Update columns for final table
+    for driver in standings_data:
+        # Add 'Current Championship Points' to track the original points
+        if 'Current Championship Points' not in driver:
+            driver['Current Championship Points'] = driver['Points']
+
+        # Calculate the 'Predicted Championship Points'
+        driver['Predicted Championship Points'] = driver['Points'] + \
+            driver['Points Predicted in Session']
+
+    # Sort standings by predicted points in descending order (higher points first)
+    sorted_standings = sorted(standings_data, key=lambda x: int(
+        x['Predicted Championship Points']), reverse=True)
+
+    # Update the position column based on the new sorted order
+    for position, driver in enumerate(sorted_standings, start=1):
+        driver['Position'] = position
+
+        # Calculate positions gained or lost
+        driver['Positions Gained/Lost'] = driver['Original Position'] - \
+            driver['Position']
+
+    return sorted_standings
 
 
 if __name__ == "__main__":
