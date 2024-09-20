@@ -9,6 +9,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
+import subprocess
 
 
 def current_driver_standings() -> List[Dict[str, Union[str, int]]]:
@@ -82,6 +83,11 @@ def get_current_session(html_content: str) -> str:
     return "other"
 
 
+def install_chromium():
+    # Install chromium if necessary
+    subprocess.run(["apt-get", "install", "-y", "chromium-browser"])
+
+
 def get_html(use_file: bool = False, file_path: str = 'f1_live_data.html') -> str:
     """
     Retrieves HTML content from the F1 live timing page.
@@ -95,8 +101,10 @@ def get_html(use_file: bool = False, file_path: str = 'f1_live_data.html') -> st
             html = file.read()
         print("Loaded HTML from file.")
     else:
+        install_chromium()
 
         chrome_options = Options()
+        chrome_options.binary_location = "/usr/bin/chromium-browser"  # Path to chromium binary
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
