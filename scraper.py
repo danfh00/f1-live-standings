@@ -1,6 +1,7 @@
 import os
 import time
 import re
+import shutil
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -10,7 +11,39 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 import subprocess
-import chromedriver_autoinstaller
+# import chromedriver_autoinstaller
+import streamlit as st
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+
+
+@st.cache_resource(show_spinner=False)
+def install_chrome():
+    """Install Google Chrome or Chromium if not already installed."""
+    if not shutil.which('google-chrome') and not shutil.which('chromium'):
+        subprocess.run(['apt-get', 'update'])
+        subprocess.run(['apt-get', 'install', '-y', 'wget', 'unzip'])
+        subprocess.run(
+            ['wget', 'https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb'])
+        subprocess.run(
+            ['dpkg', '-i', 'google-chrome-stable_current_amd64.deb'])
+
+
+@st.cache_resource(show_spinner=False)
+def get_webdriver_options() -> Options:
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--window-size=1920x1080")
+    options.add_argument("--disable-features=VizDisplayCompositor")
+    return options
+
+
+@st.cache_resource(show_spinner=False)
+def get_chromedriver_path() -> str:
+    return shutil.which('chromedriver')
 
 
 def current_driver_standings() -> List[Dict[str, Union[str, int]]]:
@@ -84,11 +117,6 @@ def get_current_session(html_content: str) -> str:
     return "other"
 
 
-# def install_chromium():
-#     # Install chromium if necessary
-#     subprocess.run(["apt-get", "install", "-y", "chromium-browser"])
-
-
 def get_html(use_file: bool = False, file_path: str = 'f1_live_data.html') -> str:
     """
     Retrieves HTML content from the F1 live timing page.
@@ -102,28 +130,24 @@ def get_html(use_file: bool = False, file_path: str = 'f1_live_data.html') -> st
             html = file.read()
         print("Loaded HTML from file.")
     else:
-        chromedriver_autoinstaller.install()
-
+        # Set up Chrome options
         chrome_options = Options()
-        chrome_options.binary_location = "/usr/bin/chromium-browser"  # Path to chromium binary
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
 
-        # Adjust path if necessary
-        service = ChromeService(executable_path='/path/to/chromedriver')
+        # Initialize the Chrome WebDriver
+        service = ChromeService(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=chrome_options)
 
+        # Fetch the HTML from the live F1 timing page
         url = 'https://f1.tfeed.net/live'
-
-        # Set up the Selenium WebDriver
-        driver = webdriver.Chrome(service=ChromeService(
-            ChromeDriverManager().install()))
         driver.get(url)
 
         # Wait for the page to load completely
         time.sleep(5)
 
+        # Get the page source
         html = driver.page_source
 
         # Save the HTML to a file
