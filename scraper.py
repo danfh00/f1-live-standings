@@ -135,10 +135,12 @@ def get_html(use_file: bool = False, file_path: str = 'f1_live_data.html') -> st
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.binary_location = "/usr/bin/chromium"
 
-        # Initialize the Chrome WebDriver
-        service = ChromeService(ChromeDriverManager().install())
+        service = ChromeService(ChromeDriverManager(
+            version="120.0.6099.224").install())
         driver = webdriver.Chrome(service=service, options=chrome_options)
+
 
         # Fetch the HTML from the live F1 timing page
         url = 'https://f1.tfeed.net/live'
