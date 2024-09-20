@@ -10,6 +10,7 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 import subprocess
+import chromedriver_autoinstaller
 
 
 def current_driver_standings() -> List[Dict[str, Union[str, int]]]:
@@ -83,9 +84,9 @@ def get_current_session(html_content: str) -> str:
     return "other"
 
 
-def install_chromium():
-    # Install chromium if necessary
-    subprocess.run(["apt-get", "install", "-y", "chromium-browser"])
+# def install_chromium():
+#     # Install chromium if necessary
+#     subprocess.run(["apt-get", "install", "-y", "chromium-browser"])
 
 
 def get_html(use_file: bool = False, file_path: str = 'f1_live_data.html') -> str:
@@ -101,7 +102,7 @@ def get_html(use_file: bool = False, file_path: str = 'f1_live_data.html') -> st
             html = file.read()
         print("Loaded HTML from file.")
     else:
-        install_chromium()
+        chromedriver_autoinstaller.install()
 
         chrome_options = Options()
         chrome_options.binary_location = "/usr/bin/chromium-browser"  # Path to chromium binary
